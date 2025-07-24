@@ -2,6 +2,7 @@
 #define CORE_HPP
 
 #include "wayfire/object.hpp"
+#include "wayfire/xdg-output.hpp"
 #include <wayfire/idle.hpp>
 #include <wayfire/scene.hpp>
 #include <wayfire/signal-provider.hpp>
@@ -113,6 +114,7 @@ class compositor_core_t : public wf::object_base_t, public signal::provider_t
 
     std::unique_ptr<wf::config_backend_t> config_backend;
     std::unique_ptr<wf::output_layout_t> output_layout;
+    std::unique_ptr<wf::xdg_output_manager_t> output_manager;
     std::unique_ptr<wf::bindings_repository_t> bindings;
     std::unique_ptr<wf::seat_t> seat;
     std::unique_ptr<wf::txn::transaction_manager_t> tx_manager;
@@ -130,7 +132,6 @@ class compositor_core_t : public wf::object_base_t, public signal::provider_t
         wlr_export_dmabuf_manager_v1 *export_dmabuf;
         wlr_server_decoration_manager *decorator_manager;
         wlr_xdg_decoration_manager_v1 *xdg_decorator;
-        wlr_xdg_output_manager_v1 *output_manager;
         wlr_virtual_keyboard_manager_v1 *vkbd_manager;
         wlr_virtual_pointer_manager_v1 *vptr_manager;
         wlr_input_inhibit_manager *input_inhibit;

@@ -27,6 +27,7 @@
 #include <wayfire/output.hpp>
 #include <wayfire/util/log.hpp>
 #include <wayfire/output-layout.hpp>
+#include <wayfire/xdg-output.hpp>
 #include <wayfire/workspace-set.hpp>
 #include <wayfire/signal-definitions.hpp>
 #include <wayfire/nonstd/wlroots-full.hpp>
@@ -137,6 +138,8 @@ void wf::compositor_core_impl_t::init()
     output_layout = std::make_unique<wf::output_layout_t>(backend);
     init_desktop_apis();
 
+    output_manager = std::make_unique<wf::xdg_output_manager_t>(display, output_layout->get_handle());
+
     /* Somehow GTK requires the tablet_v2 to be advertised pretty early */
     protocols.tablet_v2 = wlr_tablet_v2_create(display);
     input = std::make_unique<wf::input_manager_t>();
@@ -145,8 +148,8 @@ void wf::compositor_core_impl_t::init()
     protocols.screencopy = wlr_screencopy_manager_v1_create(display);
     protocols.gamma_v1   = wlr_gamma_control_manager_v1_create(display);
     protocols.export_dmabuf  = wlr_export_dmabuf_manager_v1_create(display);
-    protocols.output_manager = wlr_xdg_output_manager_v1_create(display,
-        output_layout->get_handle());
+    //protocols.output_manager = wlr_xdg_output_manager_v1_create(display,
+    //    output_layout->get_handle());
     protocols.drm_v1 = wlr_drm_lease_v1_manager_create(display, backend);
     drm_lease_request.set_callback([&] (void *data)
     {

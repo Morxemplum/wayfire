@@ -1,6 +1,8 @@
 #ifndef XDG_OUTPUT_HPP
 #define XDG_OUTPUT_HPP
 
+#include <vector>
+#include <wayland-server-core.h>
 extern "C" {
     #include <wlr/types/wlr_output_layout.h>
     #include <wlr/types/wlr_output_management_v1.h>
@@ -28,6 +30,9 @@ namespace wf
     void output_manager_handle_get_xdg_output(struct wl_client *client, struct wl_resource *resource, uint32_t id, struct wl_resource *output_resource);
     void output_manager_bind(struct wl_client *client, void *data, uint32_t version, uint32_t id);
 
+    // Forward declaration needed for xdg_output_manager_t
+    class xdg_output_t;
+
     /* xdg_output_manager_t is our custom implementation of 
      * wlr_xdg_output_manager_v1. Converted from C to C++.
      */
@@ -38,11 +43,7 @@ namespace wf
             // TODO: Replace this with output_layout_t
             struct wlr_output_layout *layout;
 
-            struct wl_list outputs;
-
-            struct {
-                struct wl_signal destroy;
-            } events;
+            struct std::vector<xdg_output_t*> outputs;
 
             static constexpr struct zxdg_output_manager_v1_interface wl_impl = {
                 .destroy = wf::output_manager_handle_destroy,

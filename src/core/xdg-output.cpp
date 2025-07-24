@@ -102,13 +102,11 @@ xdg_output_manager_t::xdg_output_manager_t(struct wl_display *display, struct wl
         return;
     }
     
-    wl_list_init(&this->outputs);
+    this->outputs = {};
     wlr_output_layout_output *layout_output;
     wl_list_for_each(layout_output, &layout->outputs, link) {
         this->add_output(layout_output);
     }
-
-    wl_signal_init(&this->events.destroy);
 
     this->layout_add.notify = handle_layout_add;
     wl_signal_add(&layout->events.add, &this->layout_add);
@@ -141,26 +139,22 @@ void xdg_output_manager_t::handle_display_destroy(struct wl_listener *listener, 
 
 void xdg_output_manager_t::add_output(struct wlr_output_layout_output *layout_output) {
     xdg_output_t output = xdg_output_t(this, layout_output);
-    wl_list_insert(&this->outputs, &output.link);
+    this->outputs.add(output);
     output.update();
 }
 
 void xdg_output_manager_t::send_details() {
-    xdg_output_t *output;
-    wl_list_for_each(output, &this->outputs, link) {
+    for (xdg_output_t *output : this->outputs) {
         output->update();
     }
 }
 
 // manager_destroy()
 void xdg_output_manager_t::destroy() {
-    xdg_output_t *output, *tmp;
-    wl_list_for_each_safe(output, tmp, &this->outputs, link) {
-        output->o_destroy();
+    for (auto i = this->outputs.begin(); i != this->outputs.end(); ) {
+        this->outputs[i]->o_destroy();
+        this->outputs.erase(i);
     }
-
-    wl_signal_emit_mutable(&this->events.destroy, this);
-    assert(wl_list_empty(&this->events.destroy.listener_list));
     
     wl_list_remove(&this->display_destroy.link);
     wl_list_remove(&this->layout_add.link);

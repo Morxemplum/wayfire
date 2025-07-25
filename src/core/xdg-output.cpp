@@ -108,33 +108,17 @@ xdg_output_manager_t::xdg_output_manager_t(struct wl_display *display, struct wl
         this->add_output(layout_output);
     }
 
-    this->layout_add.notify = handle_layout_add;
-    wl_signal_add(&layout->events.add, &this->layout_add);
-    this->layout_change.notify = handle_layout_change;
-    wl_signal_add(&layout->events.change, &this->layout_change);
-    this->layout_destroy.notify = handle_layout_destroy;
-    wl_signal_add(&layout->events.destroy, &this->layout_destroy);
-    this->display_destroy.notify = handle_display_destroy;
-    wl_display_add_destroy_listener(display, &this->display_destroy);
-
-}
-
-void xdg_output_manager_t::handle_layout_add(struct wl_listener *listener, void *data) {
-    xdg_output_manager_t *self = wl_container_of(listener, self, layout_add);
-    wlr_output_layout_output *layout_output = static_cast<wlr_output_layout_output *>(data);
-    self->add_output(layout_output);
-}
-void xdg_output_manager_t::handle_layout_change(struct wl_listener *listener, void *data) {
-    xdg_output_manager_t *self = wl_container_of(listener, self, layout_change);
-    self->send_details();
-}
-void xdg_output_manager_t::handle_layout_destroy(struct wl_listener *listener, void *data) {
-    xdg_output_manager_t *self = wl_container_of(listener, self, layout_destroy);
-    self->destroy();
-}
-void xdg_output_manager_t::handle_display_destroy(struct wl_listener *listener, void *data) {
-    xdg_output_manager_t *self = wl_container_of(listener, self, display_destroy);
-    self->destroy();
+    this->on_layout_add.set_callback([&] (void *data) {
+        wlr_output_layout_output *layout_output = static_cast<wlr_output_layout_output *>(data);
+        this->add_output(layout_output);
+    });
+    this->on_layout_add.connect(&layout->events.add);
+    this->on_layout_change.set_callback(this->send_details());
+    this->on_layout_change.connect(&layout->events.change);
+    this->on_layout_destroy.set_callback(this->destroy());
+    this->on_layout_destroy.connect(&layout->events.destroy);
+    // this->on_display_destroy.set_callback(this->destroy());
+    // wl_display_add_destroy_listener(display, &this->on_display_destroy->listener);
 }
 
 void xdg_output_manager_t::add_output(struct wlr_output_layout_output *layout_output) {
@@ -152,14 +136,14 @@ void xdg_output_manager_t::send_details() {
 // manager_destroy()
 void xdg_output_manager_t::destroy() {
     for (auto i = this->outputs.begin(); i != this->outputs.end(); ) {
-        this->outputs[i]->o_destroy();
+        this->outputs[i]->destroy();
         this->outputs.erase(i);
     }
     
-    wl_list_remove(&this->display_destroy.link);
-    wl_list_remove(&this->layout_add.link);
-    wl_list_remove(&this->layout_change.link);
-    wl_list_remove(&this->layout_destroy.link);
+    // wl_list_remove(&this->on_display_destroy->listener.link);
+    this->on_layout_add.disconnect();
+    this->on_layout_change.disconnect();
+    this->on_layout_destroy.disconnect();
     delete this;
 }
 
@@ -172,32 +156,23 @@ xdg_output_t::xdg_output_t(xdg_output_manager_t *manager, wlr_output_layout_outp
     this->layout_output = layout;
     wl_list_init(&this->resources);
 
-    this->destroy.notify = handle_output_destroy;
-    wl_signal_add(&layout->output->events.destroy, &this->destroy);
-    this->description.notify = handle_output_description;
-    wl_signal_add(&layout->output->events.description, &this->description);
-}
+    this->on_destroy.set_callback(this->destroy());
+    this->on_destroy.connect(&layout->output->events.destroy);
+    this->set_description.set_callback([&] (void *data) {
+        wlr_output *output = this->layout_output->output;
 
-// Constructors that are based on wl_listeners
-void xdg_output_t::handle_output_destroy(struct wl_listener *listener, void *data) {
-    xdg_output_t *self = wl_container_of(listener, self, destroy);
-    self->o_destroy();
-}
-
-void xdg_output_t::handle_output_description(struct wl_listener *listener, void *data){
-    xdg_output_t *self = wl_container_of(listener, self, description);
-    wlr_output *output = self->layout_output->output;
-
-    if (output->description == NULL) {
-        return;
-    }
-    
-    struct wl_resource *resource;
-    wl_resource_for_each(resource, &self->resources) {
-        if (wl_resource_get_version(resource) >= OUTPUT_DESCRIPTION_MUTABLE_SINCE_VERSION) {
-            zxdg_output_v1_send_description(resource, output->description);
+        if (output->description == NULL) {
+            return;
         }
-    }
+
+        struct wl_resource *resource;
+        wl_resource_for_each(resource, &this->resources) {
+            if (wl_resource_get_version(resource) >= OUTPUT_DESCRIPTION_MUTABLE_SINCE_VERSION) {
+                zxdg_output_v1_send_description(resource, output->description);
+            }
+        }
+    });
+    this->set_description.connect(&layout->output->events.description);
 }
 
 void xdg_output_t::handle_resource_destroy(struct wl_resource *resource) {
@@ -245,14 +220,14 @@ void xdg_output_t::update() {
     }
 }
 
-void xdg_output_t::o_destroy() {
+void xdg_output_t::destroy() {
     wl_resource *resource, *tmp;
     wl_resource_for_each_safe(resource, tmp, &this->resources) {
         wl_list_remove(wl_resource_get_link(resource));
         wl_list_init(wl_resource_get_link(resource));
     }
-    wl_list_remove(&this->destroy.link);
-    wl_list_remove(&this->description.link);
+    this->on_destroy.disconnect();
+    this->set_description.disconnect();
     wl_list_remove(&this->link);
     delete this;
 }

@@ -1,6 +1,7 @@
 #ifndef XDG_OUTPUT_HPP
 #define XDG_OUTPUT_HPP
 
+#include "wayfire/util.hpp"
 #include <vector>
 #include <wayland-server-core.h>
 extern "C" {
@@ -53,22 +54,15 @@ namespace wf
             // Constructor
             xdg_output_manager_t(struct wl_display *display, struct wlr_output_layout *layout);
 
-            static void handle_layout_add(struct wl_listener *listener, void *data);
-            static void handle_layout_change(struct wl_listener *listener, void *data);
-            static void handle_layout_destroy(struct wl_listener *listener, void *data);
-            static void handle_display_destroy(struct wl_listener *listener, void *data);
-
-            // The C counterparts use wlr_xdg_output_manager_v1 as the first parameter.
-            // That parameter has been stripped here to convert them to methods
+            // Methods
             void add_output(struct wlr_output_layout_output *layout_output);
             void send_details();
-            void destroy(); // manager_destroy()
+            void destroy();
 
         private:
-            struct wl_listener display_destroy;
-            struct wl_listener layout_add;
-            struct wl_listener layout_change;
-            struct wl_listener layout_destroy;
+            struct wl_listener_wrapper on_layout_add;
+            struct wl_listener_wrapper on_layout_change;
+            struct wl_listener_wrapper on_layout_destroy;
     };
 
     /* xdg_output_manager_t is our custom implementation of wlr_xdg_output_v1. 
@@ -89,23 +83,17 @@ namespace wf
             // Standalone constructor
             xdg_output_t(xdg_output_manager_t *manager, wlr_output_layout_output *layout);
             
-            // Wlroots uses wl_container_of and wl_list_for_each to instantiate
-            // wlr_xdg_output_v1. The following class methods below will assist
-            // in constructing instances based on the provided listener.
-            static void handle_output_destroy(struct wl_listener *listener, void *data);
-            static void handle_output_description(struct wl_listener *listener, void *data);
-            
+            // Class methods
             static void handle_resource_destroy(struct wl_resource *resource);
 
-            // The C counterparts use wlr_xdg_output_v1 as the first parameter.
-            // That parameter has been stripped here to convert them to methods
+            // Methods
             void send_details(struct wl_resource *resource);
             void update();
-            void o_destroy();
+            void destroy();
 
         private:
-            struct wl_listener destroy;
-            struct wl_listener description;
+            struct wl_listener_wrapper on_destroy;
+            struct wl_listener_wrapper set_description;
     };
 };
 

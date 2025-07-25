@@ -13,7 +13,10 @@
 
 namespace wf 
 {
-
+/* TODO: Find a better way to translate these methods into C++. These ones 
+ * are a pain to translate because their function values are bound to 
+ * interfaces.
+ */
 extern "C" void output_handle_destroy(struct wl_client *client, struct wl_resource *resource) {
     wl_resource_destroy(resource);
 }
@@ -22,12 +25,17 @@ extern "C" void output_manager_handle_destroy(struct wl_client *client, struct w
     wl_resource_destroy(resource);
 }
 
+static const struct zxdg_output_manager_v1_interface om_impl = {
+    .destroy = wf::output_manager_handle_destroy,
+    .get_xdg_output = wf::output_manager_handle_get_xdg_output,
+};
+
 void output_manager_handle_get_xdg_output(struct wl_client *client, struct wl_resource *resource, uint32_t id, struct wl_resource *output_resource) {
     const struct zxdg_output_manager_v1_interface output_impl = {
         .destroy = wf::output_handle_destroy,
     };
 
-    assert(wl_resource_instance_of(resource, &zxdg_output_manager_v1_interface, &xdg_output_manager_t::wl_impl));
+    assert(wl_resource_instance_of(resource, &zxdg_output_manager_v1_interface, &om_impl));
 
     xdg_output_manager_t *self = static_cast<xdg_output_manager_t *> (wl_resource_get_user_data(resource));
 
@@ -79,7 +87,7 @@ void output_manager_handle_get_xdg_output(struct wl_client *client, struct wl_re
     }
 }
 
-void output_manger_bind(struct wl_client *client, void *data, uint32_t version, uint32_t id) {
+void output_manager_bind(struct wl_client *client, void *data, uint32_t version, uint32_t id) {
     xdg_output_manager_t *self = static_cast<xdg_output_manager_t *>(data);
     wl_resource *resource = wl_resource_create(client, &zxdg_output_manager_v1_interface, version, id);
 
@@ -87,7 +95,7 @@ void output_manger_bind(struct wl_client *client, void *data, uint32_t version, 
         wl_client_post_no_memory(client);
         return;
     }
-    wl_resource_set_implementation(resource, &xdg_output_manager_t::wl_impl, self, NULL);
+    wl_resource_set_implementation(resource, &om_impl, self, NULL);
 }
 
 // XDG_OUTPUT_MANAGER_T

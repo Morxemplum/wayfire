@@ -21,17 +21,7 @@ extern "C" {
  */
 namespace wf
 {   
-
-    /* TODO: Find a better way to translate these methods into C++. These ones 
-     * are a pain to translate because their function values are bound to 
-     * interfaces.
-     */
-    extern "C" void output_handle_destroy(struct wl_client *client, struct wl_resource *resource);
-    extern "C" void output_manager_handle_destroy(struct wl_client *client, struct wl_resource *resource);
     void output_manager_handle_get_xdg_output(struct wl_client *client, struct wl_resource *resource, uint32_t id, struct wl_resource *output_resource);
-    void output_manager_bind(struct wl_client *client, void *data, uint32_t version, uint32_t id);
-
-    // Forward declaration needed for xdg_output_manager_t
     class xdg_output_t;
 
     /* xdg_output_manager_t is our custom implementation of 
@@ -45,11 +35,6 @@ namespace wf
             struct wlr_output_layout *layout;
 
             struct std::vector<xdg_output_t*> outputs;
-
-            static constexpr struct zxdg_output_manager_v1_interface wl_impl = {
-                .destroy = wf::output_manager_handle_destroy,
-                .get_xdg_output = wf::output_manager_handle_get_xdg_output,
-            };
 
             // Constructor
             xdg_output_manager_t(struct wl_display *display, struct wlr_output_layout *layout);

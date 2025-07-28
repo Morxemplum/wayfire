@@ -31,12 +31,13 @@ extern "C" void output_manager_handle_destroy(struct wl_client *client, struct w
 
 static const struct zxdg_output_manager_v1_interface om_impl = {
     .destroy = wf::output_manager_handle_destroy,
-    .get_xdg_output = wf::output_manager_handle_get_xdg_output,
+    .get_xdg_output = wf::output_manager_handle_get_xdg_output
 };
 
 void output_manager_handle_get_xdg_output(struct wl_client *client, struct wl_resource *resource, uint32_t id, struct wl_resource *output_resource) {
     const struct zxdg_output_manager_v1_interface output_impl = {
         .destroy = wf::output_handle_destroy,
+        .get_xdg_output = NULL
     };
 
     assert(wl_resource_instance_of(resource, &zxdg_output_manager_v1_interface, &om_impl));
@@ -61,8 +62,8 @@ void output_manager_handle_get_xdg_output(struct wl_client *client, struct wl_re
     wlr_output_layout_output *layout_output = wlr_output_layout_get(layout, output);
     assert(layout_output);
 
-    xdg_output_t *_xdg_output, *xdg_output = NULL;
-    wl_list_for_each(_xdg_output, &self->outputs, link) {
+    xdg_output_t *xdg_output = NULL;
+    for (xdg_output_t *_xdg_output : self->outputs) {
         if (_xdg_output->layout_output == layout_output) {
             xdg_output = _xdg_output;
             break;
@@ -125,9 +126,13 @@ xdg_output_manager_t::xdg_output_manager_t(wl_display *display, wlr_output_layou
         this->add_output(layout_output);
     });
     this->on_layout_add.connect(&layout->events.add);
-    this->on_layout_change.set_callback(this->send_details());
+    this->on_layout_change.set_callback([&] (void *data) {
+        this->send_details();
+    });
     this->on_layout_change.connect(&layout->events.change);
-    this->on_layout_destroy.set_callback(this->destroy());
+    this->on_layout_destroy.set_callback([&] (void *data) { 
+        this->destroy();
+    });
     this->on_layout_destroy.connect(&layout->events.destroy);
     // this->on_display_destroy.set_callback(this->destroy());
     // wl_display_add_destroy_listener(display, &this->on_display_destroy->listener);
@@ -135,7 +140,7 @@ xdg_output_manager_t::xdg_output_manager_t(wl_display *display, wlr_output_layou
 
 void xdg_output_manager_t::add_output(struct wlr_output_layout_output *layout_output) {
     xdg_output_t output = xdg_output_t(this, layout_output);
-    this->outputs.add(output);
+    this->outputs.push_back(&output);
     output.update();
 }
 
@@ -148,7 +153,8 @@ void xdg_output_manager_t::send_details() {
 // manager_destroy()
 void xdg_output_manager_t::destroy() {
     for (auto i = this->outputs.begin(); i != this->outputs.end(); ) {
-        this->outputs[i]->destroy();
+        xdg_output_t *output = *i;
+        output->destroy();
         this->outputs.erase(i);
     }
     
@@ -168,7 +174,9 @@ xdg_output_t::xdg_output_t(xdg_output_manager_t *manager, wlr_output_layout_outp
     this->layout_output = layout;
     wl_list_init(&this->resources);
 
-    this->on_destroy.set_callback(this->destroy());
+    this->on_destroy.set_callback([&] (void *data) {
+        this->destroy();
+    });
     this->on_destroy.connect(&layout->output->events.destroy);
     this->set_description.set_callback([&] (void *data) {
         wlr_output *output = this->layout_output->output;

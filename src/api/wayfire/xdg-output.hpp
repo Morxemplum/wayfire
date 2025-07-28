@@ -7,7 +7,6 @@
 extern "C" {
     #include <wlr/types/wlr_output_layout.h>
     #include <wlr/types/wlr_output_management_v1.h>
-    #include "xdg-output-unstable-v1-protocol.h"
 }
 
 /** The main reason we are deviating from upstream is because we need to modify

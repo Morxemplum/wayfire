@@ -7,6 +7,10 @@
 #include <wayland-server-core.h>
 #include <wayland-server.h>
 
+extern "C" {
+    #include "xdg-output-unstable-v1-protocol.h"
+}
+
 #define OUTPUT_MANAGER_VERSION 3
 #define OUTPUT_DONE_DEPRECATED_SINCE_VERSION 3
 #define OUTPUT_DESCRIPTION_MUTABLE_SINCE_VERSION 3
@@ -101,7 +105,7 @@ void output_manager_bind(struct wl_client *client, void *data, uint32_t version,
 // XDG_OUTPUT_MANAGER_T
 
 // Constructor
-xdg_output_manager_t::xdg_output_manager_t(struct wl_display *display, struct wlr_output_layout *layout) {
+xdg_output_manager_t::xdg_output_manager_t(wl_display *display, wlr_output_layout *layout) {
     this->layout = layout;
     
     this->global = wl_global_create(display, &zxdg_output_manager_v1_interface, OUTPUT_MANAGER_VERSION, this, wf::output_manager_bind);

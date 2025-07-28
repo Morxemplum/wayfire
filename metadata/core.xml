@@ -67,7 +67,7 @@
 			<_long>Allow Wayfire to scale XWayland applications to match an output's scale factor. Otherwise, Wayfire defers scaling to the application and must scale itself.
 			
 			If you have an output using fractional scaling, automatic scaling will lead to degraded pixel quality in the form of blurriness.
-			<_long> 
+			</_long> 
 			<default>true</default>
 		</option>
 		<option name="xwayland_startup_script" type="string">
